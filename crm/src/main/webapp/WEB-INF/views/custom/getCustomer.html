@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>客户列表</title>
+    <script src="/js/vue.js"></script>
+    <script src="/js/axios.min.js"></script>
+
+    <link rel="stylesheet" href="/element-ui/lib/theme-chalk/index.css">
+    <script src="/element-ui/lib/index.js"></script>
+</head>
+<body>
+<div id="app">
+
+    <el-button @click="openDialog(true)" type="primary" plain>添加客户</el-button>
+
+    <!--    模糊查询-->
+    <el-form :inline="true" :model="customerQuery" class="demo-form-inline">
+        <el-form-item label="客户姓名">
+            <el-input v-model="customerQuery.cname" ></el-input>
+        </el-form-item>
+        <el-form-item label="公司名称">
+            <el-select v-model="customerQuery.companyid" placeholder="请选择所在的部门">
+                <el-option v-for="item in companys" :label="item.cname" :value="item.companyid" ></el-option>
+            </el-select>
+        </el-form-item>
+
+        <el-form-item label="客户状态" >
+            <el-radio-group v-model="customerQuery.status">
+                <el-radio :label="0">正常</el-radio>
+                <el-radio :label="9999">禁用</el-radio>
+            </el-radio-group>
+        </el-form-item>
+
+        <el-form-item>
+            <el-button type="primary" @click="getAll">查询</el-button>
+        </el-form-item>
+    </el-form>
+
+<!--添加、修改表单-->
+    <el-dialog :title="modify" :visible.sync="dialogFormVisible">
+        <el-form :model="customer">
+            <el-form-item label="客户姓名" :label-width="formLabelWidth">
+                <el-input v-model="customer.cname" autocomplete="off"></el-input>
+            </el-form-item>
+            <el-form-item label="客户公司" :label-width="formLabelWidth">
+                <el-select v-model="customer.companyid" placeholder="请选择公司">
+                    <el-option v-for="item in companys" :label="item.cname" :value="item.companyid"></el-option>
+                </el-select>
+            </el-form-item>
+            <el-form-item label="生日" :label-width="formLabelWidth">
+                <el-date-picker
+                        v-model="customer.birth"
+                        type="date"
+                        format="yyyy-MM-dd"
+                        value-format="yyyy-MM-dd"
+                        placeholder="选择日期">
+                </el-date-picker>
+            </el-form-item>
+            <el-form-item label="性别" :label-width="formLabelWidth">
+                <el-radio-group v-model="customer.sex">
+                    <el-radio :label="1">男</el-radio>
+                    <el-radio :label="2">女</el-radio>
+                </el-radio-group>
+            </el-form-item>
+            <el-form-item label="地址" :label-width="formLabelWidth">
+                <el-input v-model="customer.address" autocomplete="off"></el-input>
+            </el-form-item>
+            <el-form-item label="电话" :label-width="formLabelWidth">
+                <el-input v-model="customer.phone" autocomplete="off"></el-input>
+            </el-form-item>
+            <el-form-item label="电子邮件" :label-width="formLabelWidth">
+                <el-input v-model="customer.email" autocomplete="off"></el-input>
+            </el-form-item>
+        </el-form>
+        <div slot="footer" class="dialog-footer">
+            <el-button @click="dialogFormVisible = false">取 消</el-button>
+            <el-button type="primary" @click="editCustomer">确 定</el-button>
+        </div>
+    </el-dialog>
+
+    <template>
+        <el-table
+                :data="customers"
+                border
+                style="width: 100%">
+            <el-table-column
+                    fixed
+                    prop="cid"
+                    label="客户编号"
+                    width="150">
+            </el-table-column>
+            <el-table-column
+                    prop="cname"
+                    label="顾客姓名"
+                    width="120">
+            </el-table-column>
+            <el-table-column
+                    prop="company.cname"
+                    label="客户公司"
+                    width="120">
+            </el-table-column>
+            <el-table-column
+                    prop="birth"
+                    label="生日"
+                    width="120">
+            </el-table-column>
+            <el-table-column
+                    prop="sex"
+                    label="性别"
+                    width="100"
+                    :formatter="formatSex">
+            </el-table-column>
+            <el-table-column
+                    prop="address"
+                    label="客户地址"
+                    width="120">
+            </el-table-column>
+            <el-table-column
+                    prop="phone"
+                    label="电话"
+                    width="120">
+            </el-table-column>
+            <el-table-column
+                    prop="email"
+                    label="电子邮件"
+                    width="120">
+            </el-table-column>
+            <el-table-column
+                    prop="status"
+                    label="状态"
+                    width="120"
+                    :formatter="formatStatus">
+            </el-table-column>
+            <el-table-column
+                    fixed="right"
+                    label="操作"
+                   >
+                <template slot-scope="scope">
+                    <el-switch
+                            v-model="scope.row.status"
+                            active-text="禁用"
+                            active-color="#13ce66"
+                            inactive-color="#ff4949"
+                            :active-value="0"
+                            :inactive-value="9999"
+                            @change="editCusStatus(scope.row)">
+                    </el-switch>
+                    <el-button type="text" size="small" @click="openDialog(false,scope.row)">编辑</el-button>
+                </template>
+            </el-table-column>
+        </el-table>
+    </template>
+
+    <!--    分页-->
+    <div class="block">
+        <el-pagination
+                @size-change="handleSizeChange"
+                @current-change="handleCurrentChange"
+                :current-page="customerQuery.pageNum"
+                :page-sizes="[5, 10, 15, 20]"
+                :page-size="customerQuery.pageSize"
+                layout="total, sizes, prev, pager, next, jumper"
+                :total="total">
+        </el-pagination>
+    </div>
+</div>
+
+<script>
+    new Vue({
+        el:"#app",
+        data:{
+            customers:[],//顾客列表信息
+            companys:[],//公司列表
+            customer:{//添加修改客户的信息
+                cname:undefined,
+                companyid:undefined,//客户公司，用下来选择框显示
+                birth:undefined,
+                sex:undefined,
+                address:undefined,
+                phone:undefined,
+                email:undefined
+            },
+            dialogFormVisible:false,//修改、添加表单默认关闭
+            formLabelWidth:'150px',
+            isAdd:true,//默认为添加
+            modify:'添加',
+            customerQuery:{//模糊查询
+                companyid:undefined,
+                cname:undefined,
+                status:undefined,
+                pageNum:1,
+                pageSize:5,
+            },
+            total:undefined
+        },
+        methods:{
+            //获取用户列表
+            getAll() {
+                axios.get("/customer/getAllByPage",{params:this.customerQuery}).then(resp=> {
+                        let data = resp.data
+                    console.log(data)
+                        if (data.code == 200) {
+                            this.customers = data.result
+                            this.total = data.total
+                        }
+                    })
+            },
+
+            //获取公司列表
+            getCompanyAll(){
+                axios.get("/company/getAll").then(resp=>{
+                    let data = resp.data
+                    if (data.code == 200){
+                        this.companys = data.result
+                    }
+                })
+            },
+            //添加客户信息
+            editCustomer(){
+                if (this.isAdd){
+                    axios.post("/customer/saveCustomer",this.customer).then(resp=>{
+                        let data = resp.data;
+                        if (data.code == 200){
+                            this.getAll();//添加成功之后刷新页面
+                            this.$message({
+                                message: '恭喜你添加成功',
+                                type: 'success',
+                            });
+                        }else {
+                            this.$message.error('添加失败');
+                        }
+                    })
+                }else {
+                    axios.put("/customer/editCustomer",this.customer).then(resp=>{
+                        let data = resp.data;
+                        if (data.code == 200){
+                            this.getAll();//添加成功之后刷新页面
+                            this.$message({
+                                message: '恭喜你修改成功',
+                                type: 'success',
+                            });
+                        }else {
+                            this.$message.error('修改失败');
+                        }
+                    })
+                }
+                this.dialogFormVisible = false;
+            },
+            //修改用户状态
+            editCusStatus(row){
+                axios.get("/customer/editCustomerStatus",{params:{
+                        cid:row.cid,
+                        status:row.status
+                    }}).then(resp=>{
+                        let data = resp.data;
+                        if (data.code == 200){
+                            this.$message({
+                                message: '已更改状态',
+                                type: 'success',
+                            });
+                        }
+                })
+            },
+
+            //打开嵌套表单
+            openDialog(flag,editCus){
+                this.isAdd = flag
+                this.modify = '添加'
+                this.dialogFormVisible = true
+                if (!flag){
+                    this.modify = '修改'
+                    this.customer = editCus
+                }
+            },
+
+            //性别过滤
+            formatSex(row){
+                return row.sex==1?'男':'女';
+            },
+            formatStatus(row){
+                return row.status==0?'正常':'禁用';
+            },
+            //分页
+            handleSizeChange(val) {
+                console.log(`每页 ${val} 条`);
+                this.customerQuery.pageSize = val
+                this.getAll()
+            },
+            handleCurrentChange(val) {
+                console.log(`当前页: ${val}`);
+                this.customerQuery.pageNum = val
+                this.getAll()
+            },
+
+        },
+        created(){
+            this.getCompanyAll();
+            this.getAll()
+        }
+    })
+
+</script>
+</body>
+</html>

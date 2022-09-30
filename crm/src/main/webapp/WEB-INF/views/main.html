@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>老丁后台管理平台</title>
+    <link rel="stylesheet" href="/js/layuimini/lib/layui-v2.6.3/css/layui.css">
+    <script type="text/javascript" src="/js/layuimini/lib/layui-v2.6.3/layui.js"></script>
+    <script type="text/javascript" src="/js/main.js"></script>
+    <script src="/js/vue.js"></script>
+    <script src="/js/axios.min.js"></script>
+    <script src="/element-ui/lib/index.js"></script>
+</head>
+<body>
+    <div class="layui-layout-admin" id="app">
+        <div class="layui-header">
+            <!--平台名称-->
+            <div class="layui-logo">老丁后台管理平台</div>
+            <!--左侧主菜单-->
+            <ul class="layui-nav layui-layout-left">
+                <li class="layui-nav-item"><a href="#">日志设置</a></li>
+                <li class="layui-nav-item"><a href="#">系统设置</a></li>
+                <li class="layui-nav-item"><a href="#">统计</a></li>
+                <li class="layui-nav-item"><a href="#">帮助</a></li>
+            </ul>
+            <!--右侧主菜单-->
+            <ul class="layui-nav layui-layout-right">
+                <li class="layui-nav-item">
+                    <a href="javascript:;">
+                        <img :src="imgUrl" style="width: 40px;height: 40px">
+                    </a>
+                    <dl class="layui-nav-child">
+                        <dd><a href="#">{{user.realname}}</a></dd>
+                        <dd><a href="#">修改头像</a></dd>
+                        <dd><a href="#">修改密码</a></dd>
+                        <dd><a href="#">退出</a></dd>
+                    </dl>
+                </li>
+            </ul>
+        </div>
+        <div class="layui-side layui-bg-black">
+            <ul class="layui-nav layui-nav-tree" lay-filter="menu">
+<!--                <li class="layui-nav-item"><a href="#" id="1" url="user.html"><i class="layui-icon layui-icon-user"></i>用户管理</a></li>-->
+                <li class="layui-nav-item">
+                    <a href="#"><i class="layui-icon layui-icon-home"></i>用户管理</a>
+                    <dl class="layui-nav-child">
+                        <dd><a href="#" id="2" url="/forward/toUser"><i class="layui-icon layui-icon-username"></i>用户列表</a></dd>
+                        <dd><a href="#" id="11" url="/forward/toEditHeadimg"><i class="layui-icon layui-icon-refresh-3"></i>修改头像</a></dd>
+                        <dd><a href="#" id="3" url="/forward/toEditPwd"><i class="layui-icon layui-icon-refresh-3"></i>修改密码</a></dd>
+                        <dd><a href="#" id="10" url="/forward/toGetDept"><i class="layui-icon layui-icon-layer"></i>部门管理</a></dd>
+                    </dl>
+                </li>
+                <li class="layui-nav-item">
+                    <a href="#"><i class="layui-icon layui-icon-user"></i>客户管理</a>
+                    <dl class="layui-nav-child">
+                        <dd><a href="#" id="4" url="/forward/toGetCustomer"><i class="layui-icon layui-icon-user"></i>客户列表</a></dd>
+                        <dd><a href="#" id="5" url="/forward/toGetCompany"><i class="layui-icon layui-icon-layer"></i>客户公司</a></dd>
+                        <dd><a href="#" id="6" url="/forward/toGetRecoder"><i class="layui-icon layui-icon-date"></i>跟踪信息</a></dd>
+                    </dl>
+                </li>
+
+                <li class="layui-nav-item">
+                    <a href="#"><i class="layui-icon layui-icon-set"></i>权限管理</a>
+                    <dl class="layui-nav-child">
+                        <dd><a href="#" id="7" url="/forward/toGetRole"><i class="layui-icon layui-icon-circle"></i>角色分配</a></dd>
+                        <dd><a href="#" id="8" url="/forward/toGetPermission"><i class="layui-icon layui-icon-circle"></i>权限分配</a></dd>
+                    </dl>
+                </li>
+            </ul>
+        </div>
+        <div class="layui-body">
+            <div class="layui-tab" lay-allowClose="true" lay-filter="zst">
+                <ul class="layui-tab-title">
+                    <li class="layui-this">首页</li>
+                </ul>
+                <div class="layui-tab-content">
+                    <div class="layui-tab-item layui-show">欢迎使用老丁后台管理平台!</div>
+                </div>
+            </div>
+        </div>
+        <div class="layui-footer">
+            <center>
+                2022-9999&copy;版权所有|维权必究
+            </center>
+        </div>
+
+    </div>
+    <script>
+        new Vue({
+            el:"#app",
+            data:{
+                user:undefined,
+                imgUrl:"",
+            },
+            methods:{
+                getUser(){
+                    let strJson = localStorage.getItem("user")
+                    let user = JSON.parse(strJson);
+                    this.user = user;
+                    this.imgUrl = "/upload/"+this.user.headimg
+                }
+            },
+            created(){
+                this.getUser();
+            }
+        })
+    </script>
+</body>
+</html>

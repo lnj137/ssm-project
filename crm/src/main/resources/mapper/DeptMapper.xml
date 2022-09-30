@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.nj.dao.DeptDao">
+<select id="selectById" resultType="com.nj.bean.DepartmentBean">
+    select did, dname, status
+    from department where did=#{did} and status=0;
+
+</select>
+
+    <select id="selectAll" resultType="com.nj.bean.DepartmentBean">
+        select did, dname, status
+        from department
+    </select>
+
+    <insert id="insertDept" parameterType="com.nj.bean.DepartmentBean">
+        insert into department (dname)
+        values (#{dname})
+    </insert>
+
+    <select id="selectAllByPage" resultType="com.nj.bean.DepartmentBean" parameterType="com.nj.bean.DeptQuery">
+        select did, dname, status
+        from department
+        <where>
+            <if test="dname!=null and dname.length()>0">
+                dname like concat('%',#{dname},'%')
+            </if>
+            <if test="status!=null">
+                and status = #{status}
+            </if>
+        </where>
+    </select>
+
+    <update id="updateDeptById" parameterType="com.nj.bean.DepartmentBean">
+        update department
+        <set>
+            <if test="dname!=null and dname.length()>0">
+                dname = #{dname}
+            </if>
+        </set>
+        <where>
+            did = #{did}
+        </where>
+    </update>
+
+    <update id="updateDeptStatusById" >
+        update department
+        set status = #{param2}
+        where did = #{param1}
+    </update>
+
+</mapper>

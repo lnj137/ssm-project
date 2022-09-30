@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.nj.dao.CompanyDao">
+    <select id="selectAll" resultType="com.nj.bean.CompanyBean">
+        select companyid, cname, address, bussiness, money, status
+        from company
+    </select>
+
+    <select id="selectByComoanyid" resultType="com.nj.bean.CompanyBean">
+        select companyid, cname, address, bussiness, money, status
+        from company where companyid = #{0}
+    </select>
+
+    <select id="selectAllByPage" parameterType="com.nj.bean.CompanyQuery" resultType="com.nj.bean.CompanyBean">
+        select companyid, cname, address, bussiness, money, status
+        from company
+        <where>
+            <if test="cname != null and cname.length()>0">
+                cname like concat('%',#{cname},'%')
+            </if>
+            <if test="address!=null and address.length()>0">
+                and address like concat('%',#{address},'%')
+            </if>
+            <if test="status != null">
+                and status = #{status}
+            </if>
+        </where>
+    </select>
+
+
+    <insert id="insertCompany" parameterType="com.nj.bean.CompanyBean">
+        insert into company (cname, address, bussiness, money)
+        values (#{cname},#{address},#{bussiness},#{money});
+    </insert>
+
+    <update id="updateCompanyById" parameterType="com.nj.bean.CompanyBean">
+        update company
+        <set>
+            <if test="cname!=null and cname.length()>0">
+                cname = #{cname},
+            </if>
+            <if test="address!=null and address.length()>0">
+                address = #{address},
+            </if>
+            <if test="bussiness!=null and bussiness.length()>0">
+                bussiness = #{bussiness},
+            </if>
+            <if test="money!=null and money.length()>0">
+                money = #{money},
+            </if>
+        </set>
+        <where>
+            companyid = #{companyid}
+        </where>
+    </update>
+
+    <update id="updateStatusById" >
+        update company
+        set status = #{status}
+        where companyid = #{cid}
+    </update>
+</mapper>

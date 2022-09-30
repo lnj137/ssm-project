@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.nj.dao.CustomerDao">
+    <select id="selectAll" resultMap="cusMap">
+        select cid, companyid, cname, birth, sex, address, phone, email, status
+        from customer
+    </select>
+
+    <select id="selectAllById" resultMap="cusMap">
+        select cid, companyid, cname, birth, sex, address, phone, email, status
+        from customer <where>
+        cid = #{0}
+    </where>
+    </select>
+
+
+
+    <resultMap id="cusMap" type="com.nj.bean.CustomerBean">
+        <result column="companyid" property="companyid"/>
+        <association property="company" column="companyid" select="com.nj.dao.CompanyDao.selectByComoanyid"/>
+    </resultMap>
+
+<!--    分页加模糊查询-->
+    <select id="selectAllByPage" resultMap="cusMap" parameterType="com.nj.bean.CustomerQuery">
+        select cid, companyid, cname, birth, sex, address, phone, email, status from customer
+        <where>
+            <if test="cname != null and cname.length()>0">
+                cname like concat('%',#{cname},'%')
+            </if>
+            <if test="companyid != null">
+                and companyid = #{companyid}
+            </if>
+            <if test="status != null">
+                and status = #{status}
+            </if>
+        </where>
+    </select>
+
+
+
+    <insert id="insertCus" parameterType="com.nj.bean.CustomerBean">
+        insert into customer (companyid, cname, birth, sex, address, phone, email)
+        values (#{companyid},#{cname},#{birth},#{sex},#{address},#{phone},#{email})
+    </insert>
+
+    <update id="updateCusById" parameterType="com.nj.bean.CustomerBean">
+        update customer
+        <set>
+            <if test="companyid != null">
+                companyid = #{companyid},
+            </if>
+            <if test="cname != null and cname.length()>0">
+                cname = #{cname},
+            </if>
+            <if test="birth != null">
+                birth = #{birth},
+            </if>
+            <if test="sex != null">
+                sex = #{sex},
+            </if>
+            <if test="address != null and address.length()>0">
+                address = #{address},
+            </if>
+            <if test="phone != null and phone.length()>0">
+                phone = #{phone},
+            </if>
+            <if test="email != null and email.length()>0">
+                email = #{email}
+            </if>
+        </set>
+        <where>
+            cid = #{cid}
+        </where>
+    </update>
+
+    <update id="updateStatusById" >
+        update customer
+        set status = #{status}
+        where cid = #{cid}
+    </update>
+
+    <select id="selectByCompanyId" resultType="com.nj.bean.CustomerBean">
+        select cid, companyid, cname, birth, sex, address, phone, email, status
+        from customer where companyid = #{0}
+    </select>
+
+
+
+
+
+</mapper>

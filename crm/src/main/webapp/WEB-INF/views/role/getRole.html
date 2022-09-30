@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>角色分配</title>
+    <script src="/js/vue.js"></script>
+    <script src="/js/axios.min.js"></script>
+
+    <link rel="stylesheet" href="/element-ui/lib/theme-chalk/index.css">
+    <script src="/element-ui/lib/index.js"></script>
+</head>
+<body>
+<div id="app">
+    <el-button type="success" @click="openAddRole">添加角色</el-button>
+
+    <el-dialog title="角色维护" :visible.sync="dialogFormAddRole">
+        <el-form :model="role">
+            <el-form-item label="角色名称" >
+                <el-input v-model="role.rolename" autocomplete="off"></el-input>
+            </el-form-item>
+        </el-form>
+        <div slot="footer" class="dialog-footer">
+            <el-button @click="dialogFormAddRole = false">取 消</el-button>
+            <el-button type="primary" @click="saveRole">确 定</el-button>
+        </div>
+    </el-dialog>
+
+    <template>
+        <el-table
+                :data="roles"
+                border
+                style="width: 100%">
+            <el-table-column
+                    prop="rid"
+                    label="角色编号"
+                    width="120">
+            </el-table-column>
+            <el-table-column
+                    prop="rolename"
+                    label="角色名"
+                    width="120">
+            </el-table-column>
+            <el-table-column
+                    prop="status"
+                    label="状态"
+                    width="120"
+                    :formatter="formatStatus">
+            </el-table-column>
+            <el-table-column
+                    fixed="right"
+                    label="操作"
+                    >
+                <template slot-scope="scope">
+                        <el-switch
+                                v-model="scope.row.status"
+                                active-color="#13ce66"
+                                inactive-color="#ff4949"
+                                :active-value="0"
+                                :inactive-value="9999"
+                                @change="changeSwitch(scope.row)">
+                        </el-switch>
+                    <el-button  type="text" @click="openDialogPs(scope.row)" size="small">分配权限</el-button>
+                    <!--<el-button  type="text" size="small">查看</el-button>
+                    <el-button type="text" size="small">编辑</el-button>-->
+                </template>
+            </el-table-column>
+        </el-table>
+    </template>
+
+    <el-dialog title="分配权限" :visible.sync="dialogFormVisible">
+        <el-tree
+                :data="ps"
+                show-checkbox
+                default-expand-all
+                node-key="pid"
+                ref="tree"
+                highlight-current
+                :props="defaultProps">
+        </el-tree>
+        <div slot="footer" class="dialog-footer">
+            <el-button @click="dialogFormVisible = false">取 消</el-button>
+            <el-button type="primary" @click="editPermissionByRid">确 定</el-button>
+        </div>
+    </el-dialog>
+</div>
+
+<script>
+    new Vue({
+        el:"#app",
+        data:{
+            dialogFormAddRole:false,//添加角色弹出框
+
+            dialogFormVisible:false,
+            defaultProps: {
+                children: 'children',
+                label: 'pname',
+                id:'pid',
+            },
+            ps:[],
+            roleid:undefined,
+            roles:[],
+            role:{
+                rolename:undefined,
+                rid:undefined,
+                status:undefined
+            },
+        },
+        methods:{
+            //获取全部角色
+            getAll(){
+                axios.get("/role/getAll").then(resp=>{
+                    let data = resp.data;
+                    if (data.code == 200){
+                        this.roles = data.result;
+                    }
+                })
+            },
+            openAddRole(){
+                this.dialogFormAddRole=true
+                console.log(this.role)
+            },
+            saveRole(){
+                axios.post("/role/saveRoleName",this.role).then(resp=>{
+                    //console.log(resp.data)
+                    console.log(this.role)
+                    if (resp.data.code == 200){
+                        this.$message({
+                            message: '成功',
+                            type: 'success'
+                        });
+                        this.getAll()
+                    }
+                })
+                this.dialogFormAddRole= false
+            },
+
+
+            //更改角色权限
+            editPermissionByRid(){
+                /*//获取选中节点，包含半选状态的父节点
+                let checkedNode=this.$refs.tree.getCheckedNodes(false,true);
+                let arr=[];
+                checkedNode.forEach(item=>{
+                    arr.push(item.pid)
+                });
+                console.log(r)
+                axios.get("/permission/editRolePs",{params:{
+                        rid: this.roleid,
+                        pids:arr.join(",")
+                    }}).then(resp=>{
+                    if (resp.data.code==200){
+                        this.$message({
+                            message: '分配权限成功',
+                            type: 'success'
+                        });
+                    }
+                })
+
+                this.dialogFormVisible = false
+            },*/
+                //获取角色选中的权限
+                let ck = this.$refs.tree.getCheckedNodes(false,true)
+                let arr=[];
+                ck.forEach(item=>{
+                    arr.push(item.pid)
+                });
+                console.log(arr)
+                //console.log((this.roleid))
+               axios.get("/permission/editRolePs",{params:{
+                        roleid:this.roleid,
+                        pids:arr.join(",")
+                    }}).then(resp=>{
+                    if (resp.data.code==200){
+                        this.$message({
+                            message: '分配权限成功',
+                            type: 'success'
+                        });
+                    }
+                })
+                this.dialogFormVisible = false
+            },
+            //查看角色默认的权限
+            openDialogPs(row){
+                this.roleid = row.rid
+                axios.get("/permission/getPidByRid?roleid="+row.rid).then(resp=>{
+                    let data = resp.data
+                    if (data.code == 200){
+                        let pids = data.result
+                        console.log(pids)
+                        this.$refs.tree.setCheckedKeys(pids)
+                    }
+                })
+                this.dialogFormVisible = true;
+            },
+            getAllPermissions() {
+                axios.get("/permission/getAll").then(resp => {
+                    let data = resp.data
+                    if (data.code == 200) {
+                        this.ps = data.result
+                    }
+                })
+            },
+
+            changeSwitch(row){
+                axios.get("/role/editStatusById",{params:{
+                        roleid:row.rid,
+                        status:row.status
+                    }}).then(resp=>{
+                        this.$message({
+                            message: '状态已修改',
+                            type: 'success',
+                        });
+                })
+            },
+            //状态格式
+            formatStatus(row){
+                return row.status==0?'正常':'禁用';
+            }
+
+        },
+        created(){
+            this.getAll();
+            this.getAllPermissions()
+        }
+    })
+</script>
+
+</body>
+</html>

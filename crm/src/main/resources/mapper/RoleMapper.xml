@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.nj.dao.RoleDao">
+    <select id="selectAll" resultType="com.nj.bean.RoleBean">
+        select rid, rolename, status from role
+    </select>
+
+    <update id="updateStatusById" >
+        update role
+        set status = #{param2}
+        where rid = #{param1}
+    </update>
+
+    <select id="selectRidByUserid" resultType="int">
+        select rid
+        from user_role where userid=#{userid}
+    </select>
+
+    <delete id="deleteRole">
+        delete
+        from user_role where userid = #{userid}
+    </delete>
+    <insert id="insertRole">
+        <!--insert into user_role (userid, rid)
+        values (5,1);-->
+        <foreach collection="rids" open="insert into user_role (userid, rid) values "
+                 separator="," item="rid">
+            (#{userid},#{rid})
+        </foreach>
+    </insert>
+
+    <insert id="insertRoleName" parameterType="com.nj.bean.RoleBean">
+        insert into role (rolename)
+        values (#{rolename});
+    </insert>
+
+</mapper>

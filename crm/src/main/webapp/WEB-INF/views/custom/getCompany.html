@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>客户公司</title>
+    <script src="/js/vue.js"></script>
+    <script src="/js/axios.min.js"></script>
+
+    <link rel="stylesheet" href="/element-ui/lib/theme-chalk/index.css">
+    <script src="/element-ui/lib/index.js"></script>
+</head>
+<body>
+<div id="app">
+
+    <el-button type="primary" @click="openDialog(true)" icon="el-icon-edit" circle>添加</el-button>
+
+<!--    模糊查询-->
+    <el-form :inline="true" :model="companyQuery" class="demo-form-inline">
+        <el-form-item label="公司名称">
+            <el-input v-model="companyQuery.cname" ></el-input>
+        </el-form-item>
+        <el-form-item label="公司地址">
+            <el-input v-model="companyQuery.address" ></el-input>
+        </el-form-item>
+        <el-form-item label="公司状态" :label-width="formLabelWidth">
+            <el-radio-group v-model="companyQuery.status">
+                <el-radio :label="0">正常</el-radio>
+                <el-radio :label="9999">禁用</el-radio>
+            </el-radio-group>
+        </el-form-item>
+        <el-form-item>
+            <el-button type="primary" @click="getAll">查询</el-button>
+        </el-form-item>
+    </el-form>
+
+<!--    添加修改-->
+    <el-dialog :title="modify" :visible.sync="dialogFormVisible">
+        <el-form :model="company">
+            <el-form-item label="公司名称" :label-width="formLabelWidth">
+                <el-input v-model="company.cname" autocomplete="off"></el-input>
+            </el-form-item>
+            <el-form-item label="公司地址" :label-width="formLabelWidth">
+                <el-input v-model="company.address" autocomplete="off"></el-input>
+            </el-form-item>
+
+            <el-form-item label="主营业务" :label-width="formLabelWidth">
+                <el-input type="textarea" v-model="company.bussiness"></el-input>
+            </el-form-item>
+
+            <el-form-item label="注册资金(万元)" :label-width="formLabelWidth">
+                <el-input v-model="company.money" autocomplete="off"></el-input>
+            </el-form-item>
+
+        </el-form>
+        <div slot="footer" class="dialog-footer">
+            <el-button @click="dialogFormVisible = false">取 消</el-button>
+            <el-button type="primary" @click="saveCompany">确 定</el-button>
+        </div>
+    </el-dialog>
+
+    <template>
+        <el-table
+                :data="companys"
+                border
+                style="width: 100%">
+            <el-table-column
+                    fixed
+                    prop="companyid"
+                    label="公司编号"
+                    width="150">
+            </el-table-column>
+            <el-table-column
+                    prop="cname"
+                    label="公司名称"
+                    width="120">
+            </el-table-column>
+            <el-table-column
+                    prop="address"
+                    label="公司地址"
+                    width="180">
+            </el-table-column>
+            <el-table-column
+                    prop="bussiness"
+                    label="主营业务"
+                    width="300">
+            </el-table-column>
+            <el-table-column
+                    prop="money"
+                    label="注册资金（单位:万）"
+                    width="180">
+            </el-table-column>
+            <el-table-column
+                    prop="status"
+                    label="状态"
+                    :formatter="formatStatus">
+            </el-table-column>
+            <el-table-column
+                    fixed="right"
+                    label="操作"
+                    >
+                <template slot-scope="scope">
+                    <el-switch
+                            v-model="scope.row.status"
+                            active-text="禁用"
+                            active-color="#13ce66"
+                            inactive-color="#ff4949"
+                            :active-value="0"
+                            :inactive-value="9999"
+                            @change="toDisable(scope.row)">
+                    </el-switch>
+                    <el-button type="text" size="small" @click="openDialog(false,scope.row)">编辑</el-button>
+                </template>
+            </el-table-column>
+        </el-table>
+    </template>
+    <!--    分页-->
+    <div class="block">
+        <el-pagination
+                @size-change="handleSizeChange"
+                @current-change="handleCurrentChange"
+                :current-page="companyQuery.pageNum"
+                :page-sizes="[5, 10, 15, 20]"
+                :page-size="companyQuery.pageSize"
+                layout="total, sizes, prev, pager, next, jumper"
+                :total="total">
+        </el-pagination>
+    </div>
+
+</div>
+
+<script>
+    new Vue({
+        el:"#app",
+        data:{
+            companys:[],
+            company:{//修改，添加
+                //companyid:undefined,
+                cname:undefined,
+                address:undefined,
+                bussiness:undefined,
+                money:undefined,
+                //status:undefined,
+            },
+            companyQuery:{//分页加模糊查询
+                pageNum:1,
+                pageSize:5,
+                cname:undefined,
+                address:undefined,
+                status:undefined,
+            },
+            total:undefined,
+            dialogFormVisible:false,//默认不打开嵌套表单
+            formLabelWidth:'150px',
+            isAdd:true,//默认为添加
+            modify:'修改',
+        },
+        methods:{
+            //获取公司列表
+            getAll(){
+                axios.get("/company/getAllByPage",{params:this.companyQuery}).then(resp=>{
+                    let data = resp.data
+                    if (data.code == 200){
+                        this.companys = data.result
+                        this.total = data.total
+                    }
+                })
+            },
+            //修改公司状态
+            toDisable(row){
+                axios.get(`/company/editStatus?companyid=${row.companyid}&status=${row.status}`).then(resp=>{
+                    let data = resp.data
+                    if (data.code == 200){
+                        this.$message({
+                            message: '已更改状态',
+                            type: 'success',
+                        });
+                    }
+                })
+
+            },
+
+            //添加公司信息
+            saveCompany(){
+                if (this.isAdd){
+                    axios.post("/company/saveCompany",this.company).then(resp=>{
+                        let data = resp.data
+                        if (data.code == 200){
+                            this.getAll();//添加成功之后刷新页面
+                            this.$message({
+                                message: '恭喜你添加成功',
+                                type: 'success',
+                            });
+                        }else {
+                            this.$message.error('添加失败');
+                        }
+                    })
+                }else {
+                    axios.put("/company/editCompany",this.company).then(resp=>{
+                        let data = resp.data
+                        if (data.code == 200){
+                            this.getAll();//添加成功之后刷新页面
+                            this.$message({
+                                message: '恭喜你修改成功',
+                                type: 'success',
+                            });
+                        }else {
+                            this.$message.error('修改失败');
+                        }
+                    })
+                }
+
+                this.dialogFormVisible = false;
+            },
+            //打开嵌入表单
+            openDialog(flag,editCompany){
+                this.isAdd = flag;
+                this.dialogFormVisible = true;
+                if (!flag){
+                    this.company = editCompany;
+                    this.modify = '修改'
+                }
+            },
+            handleSizeChange(val) {
+                console.log(`每页 ${val} 条`);
+                this.companyQuery.pageSize = val
+               this.getAll()
+            },
+            handleCurrentChange(val) {
+                console.log(`当前页: ${val}`);
+                this.companyQuery.pageNum = val
+                this.getAll()
+            },
+
+            formatStatus(row){
+                return row.status==0?'正常':'禁用';
+            },
+        },
+        created(){
+            this.getAll();
+        }
+    })
+
+</script>
+</body>
+</html>

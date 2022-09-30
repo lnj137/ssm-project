@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.nj.dao.UserDao">
+    <select id="selectAll" resultMap="userMap" parameterType="com.nj.bean.UserQueryBean">
+        select userid, did, username, password, birth, salary, phone, address, sex, status, realname,headimg
+        from userinfo
+        <where>
+            <if test="realname !=null and realname.length()>0">
+                and realname like concat('%',concat(#{realname},'%'))
+            </if>
+            <if test="did != null">
+                and did = #{did}
+            </if>
+            <if test="status != null">
+                and status = #{status}
+            </if>
+        </where>
+    </select>
+    <resultMap id="userMap" type="com.nj.bean.UserinfoBean">
+        <result column="did" property="did"/>
+        <association property="dept" column="did" select="com.nj.dao.DeptDao.selectById"/>
+    </resultMap>
+
+    <select id="selectByUsernameAndPassword" resultType="com.nj.bean.UserinfoBean">
+        select userid, did, username, password, birth, salary, phone, address, sex, status, realname,headimg
+        from userinfo where username=#{param1} and password=#{param2}
+    </select>
+
+    <insert id="insertUser" parameterType="com.nj.bean.UserinfoBean">
+        insert into userinfo (did, username, birth, salary, phone, address, sex, realname)
+        values (#{did},#{username},#{birth},#{salary},#{phone},#{address},#{sex},#{realname})
+    </insert>
+
+    <update id="updateStatusById">
+        update userinfo
+        set status = #{param2}
+        where userid = ${param1}
+    </update>
+
+    <select id="selectUserByUsername" resultType="com.nj.bean.UserinfoBean">
+        select userid, did, username, password, birth, salary, phone, address, sex, status, realname,headimg
+        from userinfo where username = #{username};
+    </select>
+
+    <update id="updatePwdById">
+        update userinfo
+        set password = #{param2}
+        where userid= #{param1}
+    </update>
+
+    <update id="updateUserById" parameterType="com.nj.bean.UserinfoBean">
+        update userinfo
+        <set>
+            <if test="did!=null">
+                did=#{did},
+            </if>
+            <if test="birth!=null">
+                birth=#{birth},
+            </if>
+            <if test="salary!=null">
+                salary=#{salary},
+            </if>
+            <if test="phone!=null">
+                phone=#{phone},
+            </if>
+            <if test="address!=null">
+                address=#{address},
+            </if>
+            <if test="sex!=null">
+                sex=#{sex},
+            </if>
+            <if test="realname!=null">
+                realname=#{realname},
+            </if>
+        </set>
+        <where>
+            userid=#{userid}
+        </where>
+    </update>
+
+    <select id="selectPwdById" resultType="com.nj.bean.UserinfoBean">
+        select userid, did, username, password, birth, salary, phone, address, sex, status, realname,headimg
+        from userinfo where userid = #{userid}
+    </select>
+
+    <update id="updateHeadimg">
+        update userinfo
+        set headimg = #{param2}
+        where userid=#{param1}
+    </update>
+
+    <select id="selectAllByUserid" resultType="com.nj.bean.UserinfoBean">
+        select userid,isadmin, did, username, password, birth, salary, phone, address, sex, status, realname, headimg
+        from userinfo
+        <where>
+        userid = #{0}
+    </where>
+    </select>
+
+    <select id="selectPermissionByUserid" resultType="com.nj.bean.PermissionBean">
+        select distinct p.* from user_role left join role_permission rp on user_role.rid = rp.rid
+        left join permission p on p.pid = rp.pid where user_role.userid = #{userid}
+    </select>
+
+    <select id="selectUserCus" resultType="map">
+        select u.userid,realname,count from userinfo u right join
+             (select userid,count(*) count from recoder r group by userid) rc on rc.userid = u.userid
+    </select>
+
+</mapper>

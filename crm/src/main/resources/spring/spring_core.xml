@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context
+       https://www.springframework.org/schema/context/spring-context.xsd
+       http://www.springframework.org/schema/tx
+       http://www.springframework.org/schema/tx/spring-tx.xsd">
+
+<!--    扫描service层注解-->
+    <context:component-scan base-package="com.nj.service"/>
+<!--    读取db配置文件-->
+    <context:property-placeholder location="classpath:db.properties" system-properties-mode="FALLBACK"/>
+
+
+    <bean class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="ds"/>
+        <property name="configuration" ref="conf"/>
+        <property name="mapperLocations" value="classpath:mapper/*Mapper.xml"/>
+        <property name="plugins" >
+            <array>
+                <bean class="com.github.pagehelper.PageInterceptor"/>
+            </array>
+        </property>
+    </bean>
+
+<!--    数据源-->
+    <bean class="com.alibaba.druid.pool.DruidDataSource" id="ds">
+        <property name="driverClassName" value="${driver}"/>
+        <property name="username" value="${username}"/>
+        <property name="password" value="${password}"/>
+        <property name="url" value="${url}"/>
+    </bean>
+<!--    mybatis核心配置-->
+    <bean class="org.apache.ibatis.session.Configuration" id="conf">
+        <property name="mapUnderscoreToCamelCase" value="true"/>
+        <property name="lazyLoadingEnabled" value="true"/>
+        <property name="logImpl" value="org.apache.ibatis.logging.log4j.Log4jImpl"/>
+    </bean>
+
+<!--    扫描dao层接口-->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="com.nj.dao"/>
+    </bean>
+
+</beans>

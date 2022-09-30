@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>跟踪记录</title>
+    <script src="/js/vue.js"></script>
+    <script src="/js/axios.min.js"></script>
+
+    <link rel="stylesheet" href="/element-ui/lib/theme-chalk/index.css">
+    <script src="/element-ui/lib/index.js"></script>
+</head>
+<body>
+    <div id="app">
+        <div>
+            <el-button  @click="toDialog(true)" type="primary" round>新增记录</el-button>
+        </div>
+<!--模糊查询-->
+        <el-form :inline="true" :model="recoderQuery" class="demo-form-inline">
+            <el-form-item label="公司名称">
+                <el-select v-model="recoderQuery.companyid" placeholder="请选择公司名称" @change="getCusByCom">
+                    <el-option v-for="item in companys" :label="item.cname" :value="item.companyid"></el-option>
+                </el-select>
+            </el-form-item>
+
+            <el-form-item label="客户姓名">
+                <el-select v-model="recoderQuery.customerid" placeholder="请选择客户姓名">
+                    <el-option v-for="item in customers" :label="item.cname" :value="item.cid"></el-option>
+                </el-select>
+            </el-form-item>
+
+            <el-form-item label="员工姓名">
+                <el-select v-model="recoderQuery.userid" placeholder="请选择客户姓名">
+                    <el-option v-for="item in users" :label="item.realname" :value="item.userid"></el-option>
+                </el-select>
+            </el-form-item>
+            <el-form-item>
+                <el-button type="primary" @click="getAllRecoder">查询</el-button>
+            </el-form-item>
+        </el-form>
+
+        <template>
+            <el-table
+                    :data="recoders"
+                    border
+                    style="width: 100%">
+                <el-table-column
+                        prop="recoderid"
+                        label="记录编号"
+                        width="180">
+                </el-table-column>
+                <el-table-column
+                        prop="user.realname"
+                        label="员工姓名"
+                        width="180">
+                </el-table-column>
+                <el-table-column
+                        prop="customer.cname"
+                        label="客户姓名"
+                        width="180">
+                </el-table-column>
+                <el-table-column
+                        prop="customer.company.cname"
+                        label="客户公司"
+                        width="180">
+                </el-table-column>
+                <el-table-column
+                        prop="createtime"
+                        label="沟通时间"
+                        width="180">
+                </el-table-column>
+                <el-table-column
+                        prop="remark"
+                        label="沟通内容">
+                </el-table-column>
+                <el-table-column
+                        prop="status"
+                        label="记录状态"
+                        :formatter="formatStatus">
+                </el-table-column>
+                <el-table-column
+                        fixed="right"
+                        label="操作"
+                        width="100">
+                    <template slot-scope="scope">
+                        <el-button @click="handleClick(scope.row)" type="text" size="small">查看</el-button>
+                        <el-button type="text" size="small" @click="toDialog(false,scope.row)">编辑</el-button>
+                    </template>
+                </el-table-column>
+            </el-table>
+        </template>
+
+<!--        嵌套的表单-->
+        <el-dialog title="记录表的维护" :visible.sync="dialogFormVisible">
+            <el-form :model="recoder">
+                <el-form-item label="员工姓名" :label-width="formLabelWidth">
+                    <el-select v-model="recoder.userid" placeholder="请选择员工">
+                        <el-option v-for="item in users" :label="item.realname" :value="item.userid"></el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="公司" :label-width="formLabelWidth" v-if="isAdd">
+                    <el-select v-model="recoder.companyid" placeholder="请选择公司" @change="getCusByCom">
+                        <el-option v-for="item in companys" :label="item.cname" :value="item.companyid"></el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="客户姓名" :label-width="formLabelWidth">
+                    <el-select v-model="recoder.cid" placeholder="请选择客户">
+                        <el-option v-for="item in customers" :label="item.cname" :value="item.cid"></el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="沟通记录" :label-width="formLabelWidth">
+                    <el-input v-model="recoder.remark" autocomplete="off"></el-input>
+                </el-form-item>
+            </el-form>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click="dialogFormVisible = false">取 消</el-button>
+                <el-button type="primary" @click="editRecoder">确 定</el-button>
+            </div>
+        </el-dialog>
+
+<!--        分页-->
+        <el-pagination
+                @size-change="handleSizeChange"
+                @current-change="handleCurrentChange"
+                :current-page="recoderQuery.pageNum"
+                :page-sizes="[5, 10, 15, 20]"
+                :page-size="recoderQuery.pageSize"
+                layout="total, sizes, prev, pager, next, jumper"
+                :total="total">
+        </el-pagination>
+    </div>
+    <script>
+        new Vue({
+            el:"#app",
+            data:{
+                recoders:[],//获取记录表信息
+                users:[],//获取所有员工信息
+                customers:[],//获取所有客户信息
+                companys:[],//获取所有的公司信息
+                recoderQuery:{//模糊查询加分页的信息
+                    userid:undefined,
+                    companyid:undefined,
+                    customerid:undefined,
+                    status:undefined,
+                    pageNum:1,
+                    pageSize:5,
+                },
+                total:undefined,
+                recoder:{//修改和添加
+                    userid:undefined,
+                    cid:undefined,
+                    companyid:undefined,
+                    remark:undefined,
+                },
+                dialogFormVisible:false,//默认关闭
+                formLabelWidth:'120px',
+                isAdd:true,//默认为添加
+            },
+            methods:{
+                getAllRecoder(){
+                    axios.get("/recoder/getAll",{params:this.recoderQuery}).then(resp=>{
+                        let data = resp.data
+                        console.log(data.result)
+                        if (data.code == 200){
+                            this.recoders = data.result
+                            this.total = data.total
+
+                        }
+                    })
+                },
+                getUserAll(){//获取所有用户信息
+                    axios.get("/user/getAll").then(resp=>{
+
+                        this.users = resp.data.result
+                    })
+                },
+                getCustomerAll(){//获取所有客户信息
+                    axios.get("/customer/getAll").then(resp=>{
+                        console.log(resp.data)
+                        this.customers = resp.data.result
+                    })
+                },
+                getCompanyAll(){//获取所有公司信息
+                    axios.get("/company/getAll").then(resp=>{
+                        this.companys = resp.data.result
+                    })
+                },
+                getCusByCom(companyid){//模糊查询时点击公司获取该公司下的所有的员工
+                    //console.log(companyid)
+                    axios.get("/customer/getCidByCompanyId?cid="+companyid).then(resp=>{
+                        let data = resp.data;
+                        this.customers = data.result
+                    })
+                },
+                handleSizeChange(val) {
+                    console.log(`每页 ${val} 条`);
+                    this.recoderQuery.pageSize = val
+                    this.getAllRecoder()
+                },
+                handleCurrentChange(val) {
+                    console.log(`当前页: ${val}`);
+                    this.recoderQuery.pageNum = val
+                    this.getAllRecoder()
+                },
+                editRecoder(){
+                    if (this.isAdd){//添加
+                        axios.post("/recoder/saveRecoder",this.recoder).then(resp=>{
+                            let data = resp.data
+                            if(data.code == 200){
+                                this.getAllRecoder()
+                                this.$message({
+                                    message: '恭喜你添加成功',
+                                    type: 'success',
+                                });
+                            }else {
+                                this.$message.error('添加失败');
+                            }
+                        })
+                    }else {//修改
+                        axios.put("/recoder/editRecoder",this.recoder).then(resp=>{
+                            let data = resp.data
+                            if(data.code == 200){
+                                this.getAllRecoder()
+                                this.$message({
+                                    message: '恭喜你修改成功',
+                                    type: 'success',
+                                });
+                            }else {
+                                this.$message.error('修改失败');
+                            }
+                        })
+                    }
+
+                    this.dialogFormVisible = false
+                },
+                toDialog(flag,editRecoder){
+                    this.isAdd = flag;
+                    this.dialogFormVisible = true
+                    if (!flag){
+                        this.recoder = editRecoder;
+                    }
+                },
+                formatStatus(row){
+                    return row.status==0?'正常':'禁用';
+                },
+
+
+            },
+            created(){
+                this.getAllRecoder();
+                this.getUserAll()
+                this.getCustomerAll()
+                this.getCompanyAll()
+            }
+        })
+    </script>
+</body>
+</html>

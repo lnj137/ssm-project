@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.nj.dao.PermissionDao">
+<!--    一级菜单-->
+   <select
+           id="selectAll" resultMap="perMap">
+       select pid, pname, url, parentid, status from permission where url is null ;
+   </select>
+
+    <resultMap id="perMap" type="com.nj.bean.PermissionBean">
+        <id property="pid" column="pid"/>
+        <collection property="children" column="pid" select="getChildren"/>
+    </resultMap>
+
+<!--    多级菜单-->
+    <select id="getChildren" resultMap="perMap">
+        select pid, pname, url, parentid, status
+        from permission where parentid = #{0}
+    </select>
+    
+    
+    <select id="selectPidByRid" resultType="int">
+        select pid
+        from role_permission where rid=#{roleid} and pid not in(select pid from permission where  url is null)
+    </select>
+
+    <delete id="deleteRolePsByRid">
+        delete
+        from role_permission
+        where rid = #{roleid}
+    </delete>
+    <insert id="insertRolePs">
+        <!--insert into role_permission (rid, pid)
+        values (1,5);-->
+        <foreach collection="pids" open="insert into role_permission (rid, pid) values "
+                 item="pid" separator=",">
+            (#{roleid},#{pid})
+        </foreach>
+    </insert>
+
+    <insert id="insertPermission" parameterType="com.nj.bean.PermissionBean">
+        insert into permission (pname, url, parentid)
+        values (#{pname},#{url},#{parentid});
+    </insert>
+
+    <delete id="deletePermissionByPid">
+        delete
+        from permission
+        where pid = #{pid}
+    </delete>
+    
+    <update id="updatePermissionByPid" parameterType="com.nj.bean.PermissionBean">
+        update permission
+        <set>
+            <if test="pname!=null and pname.length()>0">
+                pname = #{pname},
+            </if>
+            <if test="url!=null and url.length()>0">
+                url = #{url},
+            </if>
+            <if test="parentid!=null">
+                parentid = #{parentid},
+            </if>
+        </set>
+        <where>
+            pid = #{pid}
+        </where>
+    </update>
+    
+    <select id="selecrAllPermission" resultType="com.nj.bean.PermissionBean">
+        select pid, pname, url, parentid, status
+        from permission
+    </select>
+</mapper>

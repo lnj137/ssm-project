@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>部门列表</title>
+    <script src="/js/vue.js"></script>
+    <script src="/js/axios.min.js"></script>
+
+    <link rel="stylesheet" href="/element-ui/lib/theme-chalk/index.css">
+    <script src="/element-ui/lib/index.js"></script>
+</head>
+<body>
+<div id="app">
+    <div>
+        <el-button  @click="openDialog(true)" type="primary" round>新增部门</el-button>
+    </div>
+<!--    模糊查询-->
+    <el-form :inline="true" :model="deptQuery" class="demo-form-inline">
+        <el-form-item label="部门名称">
+            <el-input v-model="deptQuery.dname" ></el-input>
+        </el-form-item>
+
+        <el-form-item label="部门状态" >
+            <el-radio-group v-model="deptQuery.status">
+                <el-radio :label="0">正常</el-radio>
+                <el-radio :label="9999">禁用</el-radio>
+            </el-radio-group>
+        </el-form-item>
+
+        <el-form-item>
+            <el-button type="primary" @click="getAllDept">查询</el-button>
+        </el-form-item>
+    </el-form>
+
+
+<!--    添加表单-->
+    <el-dialog :title="modify" :visible.sync="dialogFormVisible">
+        <el-form :model="dept">
+            <el-form-item label="部门名称">
+                    <el-input v-model="dept.dname" autocomplete="off"></el-input>
+            </el-form-item>
+        </el-form>
+        <div slot="footer" class="dialog-footer">
+            <el-button @click="dialogFormVisible = false">取 消</el-button>
+            <el-button type="primary" @click="saveDept">确 定</el-button>
+        </div>
+    </el-dialog>
+    <template>
+        <el-table
+                :data="depts"
+                border
+                >
+            <el-table-column
+                    fixed
+                    prop="did"
+                    label="部门编号"
+                    width="150">
+            </el-table-column>
+            <el-table-column
+                    prop="dname"
+                    label="部门名称"
+                    width="120">
+            </el-table-column>
+            <el-table-column
+                    prop="status"
+                    label="状态"
+                    width="120"
+                    :formatter="formatStatus">
+            </el-table-column>
+            <el-table-column
+                    fixed="right"
+                    label="操作"
+                   >
+                <template slot-scope="scope">
+                    <el-switch
+                            v-model="scope.row.status"
+                            active-text="禁用"
+                            active-color="#13ce66"
+                            inactive-color="#ff4949"
+                            :active-value="0"
+                            :inactive-value="9999"
+                            @change="toDisable(scope.row)">
+                    </el-switch>
+                    <el-button type="text" size="small" @click="openDialog(false,scope.row)">编辑</el-button>
+                </template>
+            </el-table-column>
+        </el-table>
+    </template>
+
+<!--    分页-->
+    <div class="block">
+        <el-pagination
+                @size-change="handleSizeChange"
+                @current-change="handleCurrentChange"
+                :current-page="deptQuery.pageNum"
+                :page-sizes="[5, 10, 15, 20]"
+                :page-size="deptQuery.pageSize"
+                layout="total, sizes, prev, pager, next, jumper"
+                :total="total">
+        </el-pagination>
+    </div>
+</div>
+
+<script>
+    new Vue({
+        el:"#app",
+        data:{
+            depts:[],//一开始用来获取所有的部门列表
+            isAdd:true,//true 为添加，false为修改
+            modify:"添加",
+            dialogFormVisible:false,//添加表单默认状态
+            dept:{ //增加、修改的部门列表
+                did:undefined,
+                dname:undefined,
+                status:undefined
+            },
+            //分页加搜索
+            deptQuery:{
+                pageNum:1,
+                pageSize:5,
+                status:undefined,
+                dname:undefined
+            },
+            total:undefined,
+
+        },
+        methods:{
+            //获取全部的部门列表+分页
+            //获取部门信息
+            getAllDept(){
+                axios.get("/dept/getAllByPage",{params:this.deptQuery}).then(resp=>{
+                    let res = resp.data;
+                    if (res.code == 200){
+                        this.depts = res.result;
+                        this.total = res.total;
+                    }
+                })
+            },
+            //添加部门
+            saveDept(){
+                if (this.isAdd){//添加
+                    axios.post("/dept/saveDept",this.dept).then(resp=>{
+                        let data = resp.data;
+                        console.log(data)
+                        if (data.code == 200){
+                            this.getAllDept();//添加成功之后刷新页面
+                            this.$message({
+                                message: '恭喜你添加成功',
+                                type: 'success',
+                            });
+                        }else {
+                            this.$message.error('添加失败');
+                        }
+                    })
+                }else {
+                    axios.put("/dept/editDeptById",this.dept).then(resp=>{
+                        let data = resp.data
+                        if (data.code == 200){
+                            this.getAllDept();//修改成功之后刷新页面
+                            this.$message({
+                                message: '恭喜你修改成功',
+                                type: 'success',
+                            });
+                        }else {
+                            this.$message.error('修改失败');
+                        }
+                    })
+                }
+                this.dialogFormVisible = false
+            },
+            //修改部门状态
+            toDisable(row){
+                axios.get(`/dept/editStatusById?did=${row.did}&status=${row.status}`).then(resp=>{
+                    let data = resp.data
+                })
+            },
+
+            //状态过滤
+            formatStatus(row){
+                return row.status==0?'正常':'禁用';
+            },
+            //打开添加和修改框
+            openDialog(flag,editDept){
+                this.isAdd=flag;
+                this.dialogFormVisible=true;
+                if (!this.isAdd){
+                    this.dept = editDept;
+                    this.modify="修改";
+                }
+            },
+
+            //分页
+            handleSizeChange(val) {
+                console.log(`每页 ${val} 条`);
+                this.deptQuery.pageSize = val
+                this.getAllDept()
+            },
+            handleCurrentChange(val) {
+                console.log(`当前页: ${val}`);
+                this.deptQuery.pageNum = val
+                this.getAllDept()
+            },
+        },
+
+
+        created(){
+            this.getAllDept();
+        }
+    })
+</script>
+
+</body>
+</html>

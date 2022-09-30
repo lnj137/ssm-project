@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>权限管理</title>
+    <script src="/js/vue.js"></script>
+    <script src="/js/axios.min.js"></script>
+
+    <link rel="stylesheet" href="/element-ui/lib/theme-chalk/index.css">
+    <script src="/element-ui/lib/index.js"></script>
+    <style>
+        .custom-tree-node {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 14px;
+            padding-right: 8px;
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <el-tree
+            :data="ps"
+            default-expand-all
+            node-key="pid"
+            ref="tree"
+            highlight-current
+            :expand-on-click-node="false"
+            :props="defaultProps">
+        <span class="custom-tree-node" slot-scope="{ node, data }">
+        <span>{{ node.label }}</span>
+        <span>
+          <el-button
+                  type="text"
+                  size="mini"
+                  v-if="!data.url"
+                  class="el-icon-circle-plus"
+                  @click="() => append(data,true)">
+          </el-button>
+            <el-button
+                    type="text"
+                    size="mini"
+                    class="el-icon-edit"
+                    @click="() => edit(data,false)">
+          </el-button>
+          <el-button
+                  type="text"
+                  size="mini"
+                  class="el-icon-delete"
+                  v-if="data.url"
+                  @click="() => remove(data)">
+          </el-button>
+        </span>
+      </span>
+    </el-tree>
+
+
+    <el-dialog title="编辑菜单" :visible.sync="dialogFormVisible">
+        <el-form :model="permission">
+            <el-form-item v-if="permission.url?true:false" label="选则父菜单" >
+                <el-select v-model="permission.parentid" placeholder="请选择父菜单">
+                    <el-option :key="item.pid" v-for="item in ps" :label="item.pname" :value="item.pid"></el-option>
+                </el-select>
+            </el-form-item>
+            <el-form-item label="菜单名称" >
+                <el-input v-model="permission.pname" autocomplete="off"></el-input>
+            </el-form-item>
+            <el-form-item v-if="permission.parentid?true:false" label="菜单url" >
+                <el-input v-model="permission.url" autocomplete="off"></el-input>
+            </el-form-item>
+        </el-form>
+        <div slot="footer" class="dialog-footer">
+            <el-button @click="dialogFormVisible = false">取 消</el-button>
+            <el-button type="primary" @click="editPer">确 定</el-button>
+        </div>
+    </el-dialog>
+
+</div>
+
+<script>
+    new Vue({
+        el:"#app",
+        data:{
+            dialogFormVisible:false,
+            permission:{
+                pname:undefined,
+                url:undefined,
+                parentid:undefined
+            },
+
+
+            defaultProps: {
+                children: 'children',
+                label: 'pname',
+                id:'pid',
+            },
+            ps:[],
+            isAdd:true,
+        },
+        methods:{
+            //获取权限信息
+            getAll(){
+              axios.get("/permission/getAll").then(resp=>{
+                  let data = resp.data
+                  if (data.code == 200){
+                      this.ps = data.result
+                  }
+              })
+            },
+            append(data,flag){
+                console.log(data)
+                this.permission.parentid = data.pid
+                this.dialogFormVisible = true;
+                this.isAdd = flag;
+            },
+            edit(data,flag){
+                console.log(data)
+                this.permission=data
+                this.dialogFormVisible = true;
+                this.isAdd = flag;
+            },
+
+            remove(data){
+                console.log("remove")
+                console.log(data)
+                this.$confirm('此操作将永久删除该权限, 是否继续?', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    axios.delete("/permission/cutPermissionByPid?pid="+data.pid).then(resp=>{
+                        if (resp.data.code == 200){
+                            this.getAll();
+                            this.$message({
+                                type: 'success',
+                                message: '删除成功!'
+                            });
+                        }else {
+                            this.$message.error(data.msg);
+                        }
+                    })
+                }).catch(() => {
+                    this.$message({
+                        type: 'info',
+                        message: '已取消删除'
+                    });
+                });
+            },
+            //添加子菜单
+            editPer(){
+                if (this.isAdd){//添加
+                    console.log(this.permission)
+                    axios.post("/permission/addPermission",this.permission).then(resp=>{
+                        let data = resp.data
+                        if (data.code == 200){
+                            this.$message({
+                                message: '子菜单添加成功',
+                                type: 'success'
+                            });
+                            this.getAll()
+                        }else{
+                            this.$message.error(data.msg);
+                        }
+                    })
+                    this.dialogFormVisible = false;
+                }else {//修改
+                    axios.put("/permission/editPermissionByPid",this.permission).then(resp=>{
+                        if (resp.data.code == 200){
+                            this.$message({
+                                message: '菜单修改成功',
+                                type: 'success'
+                            });
+                            this.getAll()
+                        }
+                    })
+                    this.dialogFormVisible = false;
+                }
+
+            },
+
+
+        },
+        created(){
+            this.getAll()
+        }
+    })
+</script>
+
+</body>
+</html>

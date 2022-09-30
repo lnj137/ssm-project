@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+        <script src="/js/vue.js"></script>
+        <script src="/js/axios.min.js"></script>
+
+        <link rel="stylesheet" href="/element-ui/lib/theme-chalk/index.css">
+        <script src="/element-ui/lib/index.js"></script>
+</head>
+<body>
+<div id="app">
+    <el-form :inline="true" :model="queryUser" class="demo-form-inline">
+        <el-form-item label="真实姓名">
+            <el-input v-model="queryUser.realname" ></el-input>
+        </el-form-item>
+        <el-form-item label="部门名称">
+            <el-select v-model="queryUser.did" placeholder="请选择所在的部门">
+                <el-option v-for="item in dept" :label="item.dname" :value="item.did" ></el-option>
+            </el-select>
+        </el-form-item>
+
+        <el-form-item label="人员状态" :label-width="formLabelWidth">
+            <el-radio-group v-model="queryUser.status">
+                <el-radio :label="0">正常</el-radio>
+                <el-radio :label="9999">禁用</el-radio>
+            </el-radio-group>
+        </el-form-item>
+        <el-form-item>
+            <el-button type="primary" @click="getAllUsers">查询</el-button>
+        </el-form-item>
+    </el-form>
+
+
+    <template>
+        <el-table
+                :data="tableData"
+                border
+                style="width: 900%">
+            <el-table-column
+                    fixed
+                    prop="userid"
+                    label="编号"
+                    width="50">
+            </el-table-column>
+            <el-table-column
+                    prop="dept.dname"
+                    label="部门"
+                    width="80">
+            </el-table-column>
+            <el-table-column
+                    prop="username"
+                    label="用户名"
+                    width="100">
+            </el-table-column>
+            <!--<el-table-column
+                    prop="password"
+                    label="密码（已加密）"
+                    width="200">
+            </el-table-column>-->
+            <el-table-column
+                    prop="birth"
+                    label="生日"
+                    width="110">
+            </el-table-column>
+            <el-table-column
+                    prop="salary"
+                    label="薪资"
+                    width="100">
+            </el-table-column>
+            <el-table-column
+                    prop="phone"
+                    label="联系电话"
+                    width="100">
+            </el-table-column>
+            <el-table-column
+                    prop="address"
+                    label="地址"
+                    width="120">
+            </el-table-column>
+            <el-table-column
+                    prop="sex"
+                    label="性别"
+                    width="70"
+                    :formatter="formatSex">
+            </el-table-column>
+            <el-table-column
+                    prop="realname"
+                    label="真实姓名"
+                    width="90">
+            </el-table-column>
+            <el-table-column
+                    prop="status"
+                    label="状态"
+                    width="120"
+                    :formatter="formatStatus">
+            </el-table-column>
+
+            <el-table-column
+                    label="操作">
+                <template slot-scope="scope">
+                    <el-button type="text" @click="openDialog(false,scope.row)" size="small">修改用户信息</el-button>
+                    <el-button type="text" @click="getRidByUserid(scope.row)" size="small">维护用户角色</el-button>
+                    <el-button @click="pwdToResetById(scope.row.userid)" type="info" round>密码重置</el-button>
+                    <br>
+                    <el-switch
+                            v-model="scope.row.status"
+                            active-text="禁用"
+                            active-color="#13ce66"
+                            inactive-color="#ff4949"
+                            :active-value="0"
+                            :inactive-value="9999"
+                            @change="toDisable(scope.row)">
+                    </el-switch>
+                </template>
+            </el-table-column>
+        </el-table>
+    </template>
+    <div class="block">
+        <el-pagination
+                @size-change="handleSizeChange"
+                @current-change="handleCurrentChange"
+                :current-page="queryUser.pageNum"
+                :page-sizes="[5, 10, 15, 20]"
+                :page-size="queryUser.pageSize"
+                layout="total, sizes, prev, pager, next, jumper"
+                :total="total">
+        </el-pagination>
+    </div>
+
+    <div>
+        <el-button style="float:right;" @click="openDialog(true)" type="primary" round>新增用户</el-button>
+    </div>
+    <div>
+        <el-dialog :title="modify" :visible.sync="dialogFormVisible">
+            <el-form :model="user">
+                <el-form-item v-if="isAdd" label="用户名" :label-width="formLabelWidth">
+                    <el-input v-model="user.username" autocomplete="off" @blur="checkUsername"></el-input>
+                    <span v-if="usernameExist" style="color: red">用户名重复，请重新输入</span>
+                </el-form-item>
+                <el-form-item label="真实姓名" :label-width="formLabelWidth">
+                    <el-input v-model="user.realname" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="联系电话" :label-width="formLabelWidth">
+                    <el-input v-model="user.phone" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="性别" :label-width="formLabelWidth">
+                    <el-radio-group v-model="user.sex">
+                        <el-radio :label="1">男</el-radio>
+                        <el-radio :label="2">女</el-radio>
+                    </el-radio-group>
+                </el-form-item>
+
+                <el-form-item label="生日" :label-width="formLabelWidth">
+                        <el-date-picker
+                                v-model="user.birth"
+                                type="date"
+                                format="yyyy-MM-dd"
+                                value-format="yyyy-MM-dd"
+                                placeholder="选择日期">
+                        </el-date-picker>
+                </el-form-item>
+
+
+                <el-form-item label="地址" :label-width="formLabelWidth">
+                    <el-input v-model="user.address" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="工资" :label-width="formLabelWidth">
+                    <el-input v-model="user.salary" autocomplete="off"></el-input>
+                </el-form-item>
+
+                <el-form-item label="选择部门" :label-width="formLabelWidth">
+                    <el-select v-model="user.did" placeholder="请选择所在的部门">
+                        <el-option v-for="item in dept" :label="item.dname" :value="item.did" ></el-option>
+                    </el-select>
+                </el-form-item>
+            </el-form>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click="dialogFormVisible=false" >取 消</el-button>
+                <el-button type="primary" @click="insertUser">确 定</el-button>
+            </div>
+        </el-dialog>
+    </div>
+
+<!--    用户角色的显示框-->
+    <el-dialog title="用户角色的维护" :visible.sync="roleDialogFormVisible">
+        <el-form>
+            <el-checkbox-group v-model="roleCheckList">
+                <el-checkbox v-for="item in roles" :label="item.rid"
+                             :disabled="item.status==0?false:true">{{item.rolename}}</el-checkbox>
+            </el-checkbox-group>
+        </el-form>
+        <div slot="footer" class="dialog-footer">
+            <el-button @click="roleDialogFormVisible = false">取 消</el-button>
+            <el-button type="primary" @click="editRole">确 定</el-button>
+        </div>
+    </el-dialog>
+
+</div>
+
+<script>
+    new Vue({
+        el:"#app",
+        data:{
+            //角色
+            roleDialogFormVisible:false,
+            roles:[],//获取用户的所有角色
+            roleCheckList:[],//获取当前选择的用户的角色
+            userid:undefined,
+
+            tableData:[],
+            total:0,
+
+            dialogFormVisible:false,//显示和隐藏表单
+            formLabelWidth: '120px',//表单宽度
+            dept:[],
+            queryUser:{
+              realname:undefined,
+              did:undefined,
+              status:undefined,
+                pageNum:1,
+                pageSize:5,
+            },
+            user:{
+                userid:undefined,
+                did:undefined,
+                username:undefined,
+                birth:undefined,
+                salary:undefined,
+                phone:undefined,
+                address:undefined,
+                sex:undefined,
+                status:undefined,
+                realname:undefined,
+            },
+            usernameExist:false,//判断用户名是否存在
+            modify:"添加",
+            isAdd:true,//true为添加操作，false为编辑修改操作
+        },
+        methods:{
+            //获取角色信息
+            getAllRole(){
+                axios.get("/role/getAll").then(resp=>{
+                    let data = resp.data;
+                    if (data.code == 200){
+                        console.log(data.result)
+                        this.roles = data.result;
+                    }
+                })
+            },
+            //通过userid获取rid
+            getRidByUserid(row){
+                this.userid = row.userid;
+                this.roleDialogFormVisible = true
+                axios.get("/role/getRidByUserid?userid="+row.userid).then(resp=>{
+                    this.roleCheckList = resp.data.result
+                })
+            },
+            //更改用户权限
+            editRole(){
+                //console.log(this.roleCheckList.join(","))
+                //console.log(this.userid)
+                axios.get("/role/editRoleByUserid",{params:{
+                        userid:this.userid,
+                        rids:this.roleCheckList.join(",")
+                    }}).then(resp=>{
+                        if (resp.data.code ==200) {
+                            this.$message({
+                                message: '权限修改成功',
+                                type: 'success',
+                            })
+                        }
+                })
+                this.roleDialogFormVisible = false;
+            },
+
+            //获取用户列表
+            getAllUsers(){//获取用户列表
+                /*this.queryUser.pageNum = this.pageNum;
+                this.queryUser.pageSize = this.pageSize;*/
+                axios.get("/user/getUserByPage",{params:this.queryUser}).then(resp=>{
+                    console.log(resp.data)
+                    let da = resp.data;
+                    this.tableData = da.result;
+                    this.total=da.total;
+                })
+            },
+
+
+            //获取部门信息
+            getAllDept(){
+                axios.get("/dept/deptAll").then(resp=>{
+                    let res = resp.data;
+                    if (res.code == 200){
+                        this.dept = res.result;
+                    }
+                })
+            },
+
+            //分页
+            handleSizeChange(val) {
+                console.log(`每页 ${val} 条`);
+                this.queryUser.pageSize=val;
+                this.getAllUsers();
+            },
+            handleCurrentChange(val) {
+                console.log(`当前页: ${val}`);
+                this.queryUser.pageNum=val;
+                this.getAllUsers();
+            },
+
+            //重置密码为123456
+            pwdToResetById(row){
+                console.log(row)
+                axios.get(`/user/editPwd?userid=`+row).then(resp=>{
+                    let data = resp.data;
+                    if (data.code ==200){
+                        this.$message({
+                            message: '用户密码重置成功',
+                            type: 'success',
+                        });
+                    }else {
+                        this.$message.error('不可抗力因素，重置失败');
+                    }
+                })
+            },
+
+            //添加时检查用户名是否存在
+            checkUsername(){
+                console.log(this.user.username)
+                axios.get("/user/getUsername",{params:{
+                        username:this.user.username
+                    }}).then(resp=>{
+                        let data = resp.data;
+                        if (data.code == 400){
+                            this.usernameExist = true;
+                        }else {
+                            this.usernameExist = false;
+                        }
+                })
+            },
+
+            //修改用户状态
+            toDisable(row){
+                console.log(row)
+                axios.get("/user/editStatus",{params:{
+                        userid:row.userid,
+                        newStatus:row.status,
+                    }}).then(resp=>{
+                    let data = resp.data;
+
+                })
+            },
+
+            //格式化数据
+            formatSex(row){
+                return row.sex==1?'男':'女';
+            },
+            formatStatus(row){
+                return row.status==0?'正常':'禁用';
+            },
+
+            openDialog(flag,toUser){
+                this.isAdd=flag;
+                this.dialogFormVisible=true;
+                // console.log(toUser)
+                if (this.isAdd){
+                }else {
+                    this.user = toUser;
+                    this.modify="修改";
+                }
+            },
+
+            //添加用户
+            insertUser(){
+                if (this.isAdd){
+                    if (this.usernameExist){
+                        return null;
+                    }
+                    axios.post("/user/insert",this.user).then(resp=>{
+                        let res = resp.data;
+                        if (res.code == 200){
+                            this.getAllUsers();//添加成功之后刷新页面
+                            this.$message({
+                                message: '恭喜你添加成功',
+                                type: 'success',
+                            });
+                        }else {
+                            this.$message.error('添加失败');
+                        }
+                    })
+                    this.dialogFormVisible = false
+                }else {
+                    axios.put("/user/editUserById",this.user).then(resp=>{
+                        let data = resp.data
+                        console.log("editUserById=="+data)
+                        if (data.code ==200){
+                            this.getAllUsers();//添加成功之后刷新页面
+                            this.$message({
+                                message: '恭喜你修改成功',
+                                type: 'success',
+                            });
+                        }else {
+                             this.$message.error('修改失败');
+                        }
+                    })
+                    this.dialogFormVisible = false
+                }
+
+            }
+
+        },
+        //钩子函数
+        created(){
+            this.getAllUsers();
+            this.getAllDept();
+            this.getAllRole()
+        }
+    })
+</script>
+</body>
+</html>

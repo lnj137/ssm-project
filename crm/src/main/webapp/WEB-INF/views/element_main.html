@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="/js/vue.js"></script>
+    <script src="/js/axios.min.js"></script>
+
+    <link rel="stylesheet" href="/element-ui/lib/theme-chalk/index.css">
+    <script src="/element-ui/lib/index.js"></script>
+    <style>
+        *{
+            padding: 0;
+            margin: 0;
+        }
+        .el-header, .el-footer {
+            background-color: #B3C0D1;
+            color: #333;
+            text-align: center;
+            line-height: 60px;
+        }
+
+        .el-aside {
+            background-color: #D3DCE6;
+            color: #333;
+            text-align: center;
+            height: 840px;
+        }
+
+        .el-main {
+            background-color: #E9EEF3;
+            color: #333;
+            text-align: center;
+            line-height: 160px;
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <el-container>
+        <el-header>
+            <el-row>
+                <el-col :span="20"><div class="grid-content bg-purple">CRM管理</div></el-col>
+                <el-col :span="4"><div class="grid-content bg-purple-light">
+                    <span style="text-align:end;color:#f00;">
+                        用户：{{user.realname}}
+                        <el-button @click="logout" type="info" round>退出登录</el-button>
+                    </span>
+                </div></el-col>
+            </el-row>
+
+        </el-header>
+        <el-container>
+            <el-aside width="200px">
+                <el-menu
+                        default-active="2"
+                        class="el-menu-vertical-demo"
+                        @open="handleOpen"
+                        @close="handleClose">
+<!--                    一级菜单 parentid==0-->
+                    <el-submenu :index="item.pid" v-for="item in permissions" v-if="item.parentid==null">
+                        <template slot="title">
+                            <i class="el-icon-notebook-2"></i>
+                            <span style="color: #9c9da0">{{item.pname}}</span>
+                        </template>
+                        <!--二级菜单-->
+                        <el-menu-item-group>
+                            <el-menu-item :index="item.pid+'-'+children.pid" v-for="children in permissions" v-if="children.parentid==item.pid">
+                                <a :href="children.url" target="main" style="text-decoration: none;color: #000">{{children.pname}}</a>
+                            </el-menu-item>
+                        </el-menu-item-group>
+
+                    </el-submenu>
+                    </el-menu-item>
+                </el-menu>
+            </el-aside>
+            <el-container>
+                <el-main>
+                    <iframe name="main" width="100%" height="100%"  frameborder="0"></iframe>
+                </el-main>
+                <el-footer>2022-9999&copy;版权所有|维权必究</el-footer>
+            </el-container>
+        </el-container>
+    </el-container>
+</div>
+<script >
+    new Vue({
+        el:"#app",
+        data:{
+            permissions:[],
+            user:{}
+        },
+        methods:{
+            //获取用户显示菜单，（权限信息）
+            getPermission(){
+                let userJson = localStorage.getItem("user")
+                this.user = JSON.parse(userJson);
+                axios.get("/user/getUserPermission?userid="+this.user.userid).then(resp=>{
+                    if (resp.data.code == 200){
+                        console.log(resp.data.result)
+                        this.permissions = resp.data.result
+                    }
+                })
+            },
+            logout(){
+                //清空保存在浏览器中的缓存
+                localStorage.clear();
+                //去后台清空session
+                axios.get("/user/logout").then(resp=>{
+                    location.href="/forward/toLogin"
+                })
+            },
+
+
+
+            handleOpen(key, keyPath) {
+                console.log(key, keyPath);
+            },
+            handleClose(key, keyPath) {
+                console.log(key, keyPath);
+            }
+        },
+        created(){
+            this.getPermission()
+        }
+    })
+</script>
+
+</body>
+</html>

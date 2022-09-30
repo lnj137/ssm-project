@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>修改密码</title>
+    <script src="/js/vue.js"></script>
+    <script src="/js/axios.min.js"></script>
+
+    <link rel="stylesheet" href="/element-ui/lib/theme-chalk/index.css">
+    <script src="/element-ui/lib/index.js"></script>
+</head>
+<body>
+    <div id="app">
+        <el-form :model="userPwd">
+            <el-form-item label="原密码">
+                <el-input type="password" v-model="userPwd.oldPwd"></el-input>
+                <span  v-if="code==400" style="color: red">{{userPwd.msg}}</span>
+            </el-form-item>
+            <el-form-item label="新密码">
+                <el-input type="password" v-model="userPwd.newPwd"></el-input>
+            </el-form-item>
+            <el-form-item>
+                <el-button type="primary" @click="onSubmit">修改</el-button>
+            </el-form-item>
+        </el-form>
+
+    </div>
+
+
+    <script>
+        new Vue({
+            el:"#app",
+            data:{
+                userPwd:{
+                    oldPwd:undefined,
+                    newPwd:undefined
+                },
+                flag :false,
+                code:undefined,
+            },
+            methods:{
+
+                onSubmit(){
+                    //获取当前对象的id
+                   let userStr =  localStorage.getItem("user");
+                   let user = JSON.parse(userStr);
+                   this.userPwd.userid = user.userid
+                    axios.get("/user/editPwdById",{params:this.userPwd}).then(resp=>{
+                        let data = resp.data;
+                        this.code=data.code;
+                        if (data.code == 200){
+                            this.$message({
+                                message: '密码修改成功',
+                                type: 'success'
+                            });
+                        }else{
+                            this.userPwd.msg = data.msg
+                            this.flag = true;
+                            this.$message.error(data.msg);
+                        }
+                    })
+                }
+            }
+        })
+    </script>
+</body>
+</html>

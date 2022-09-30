@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>修改头像</title>
+    <script src="/js/vue.js"></script>
+    <script src="/js/axios.min.js"></script>
+
+    <link rel="stylesheet" href="/element-ui/lib/theme-chalk/index.css">
+    <script src="/element-ui/lib/index.js"></script>
+</head>
+<body>
+<div id="app">
+    <div class="demo-image">
+        <el-image
+                style="width: 100px; height: 100px"
+                :src="url"></el-image>
+    </div>
+    <el-upload
+            class="upload-demo"
+            :action="imgUrl"
+            :on-success="successHeadimg"
+            name="file"
+            list-type="picture">
+        <el-button size="small" type="primary">点击上传</el-button>
+    </el-upload>
+</div>
+
+<script>
+    new Vue({
+        el:"#app",
+        data:{
+            imgUrl:"",
+
+            user:undefined,
+            url:"",
+        },
+        methods:{
+            //获取当前登录的用户信息
+            getUser(){
+                let strJson = localStorage.getItem("user")
+                let user = JSON.parse(strJson);
+                this.user = user;
+                this.url = "/upload/"+this.user.headimg;
+                this.imgUrl = "/user/editHeadimgById?userid="+this.user.userid
+            },
+            successHeadimg(resp){
+                console.log(resp)
+                this.url = "/upload/"+resp.result;
+                if (resp.code ==200){
+                    this.$message({
+                        message: '头像修改成功，请退出重新登录查看头像',
+                        type: 'success',
+                    });
+                }else {
+                    this.$message.error(resp.msg);
+                }
+            },
+        },
+        created(){
+            this.getUser();
+        }
+    })
+</script>
+</body>
+</html>
